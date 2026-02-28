@@ -86,9 +86,9 @@ export const validateScanAndCalculateFraud = async (data: ScanData) => {
             { latitude: lastScan.lat, longitude: lastScan.long }
         );
 
-        // Speed in meters per hour
-        const speedMph = distanceBetweenScans / (timeDiffHours || 0.0001); // avoid /0
-        const speedKmh = speedMph / 1000;
+        // Speed in meters per hour (getDistance returns meters, timeDiffHours in hours)
+        const speedMetersPerHour = distanceBetweenScans / (timeDiffHours || 0.0001); // avoid /0
+        const speedKmh = speedMetersPerHour / 1000;
 
         // If speed is > 100 km/h (unlikely for sanitation)
         if (speedKmh > 100) {

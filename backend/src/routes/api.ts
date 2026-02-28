@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { login } from '../controllers/authController';
+import { login, adminLogin } from '../controllers/authController';
 import { validateScan, generateQR } from '../controllers/qrController';
 import { authenticate } from '../middleware/auth';
 import { query } from '../config/db';
@@ -9,14 +9,17 @@ const router = Router();
 // Worker Auth
 router.post('/login', login);
 
+// Admin Auth
+router.post('/admin/login', adminLogin);
+
 // Scanning
 router.post('/validate-scan', authenticate, validateScan);
 
 // Utility (For creating test QR payloads)
 router.post('/admin/generate-qr', generateQR);
 
-// Admin Dashboard Data
-router.get('/admin/scans', async (req, res) => {
+// Admin Dashboard Data (Protected)
+router.get('/admin/scans', authenticate, async (req, res) => {
     try {
         const result = await query(`
       SELECT s.*, w.name as worker_name, q.lat as target_lat, q.long as target_long
@@ -32,7 +35,7 @@ router.get('/admin/scans', async (req, res) => {
     }
 });
 
-router.get('/admin/stats', async (req, res) => {
+router.get('/admin/stats', authenticate, async (req, res) => {
     try {
         const totalScans = await query(`SELECT COUNT(*) FROM scan_event`);
         const flaggedScans = await query(`SELECT COUNT(*) FROM scan_event WHERE fraud_score > 50`);
@@ -47,6 +50,7 @@ router.get('/admin/stats', async (req, res) => {
             }
         });
     } catch (err) {
+        console.error('Stats Error:', err);
         res.status(500).json({ success: false, message: 'DB Error' });
     }
 });

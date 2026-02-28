@@ -52,72 +52,78 @@ fun QRScannerScreen(token: String) {
                 // In a real app, bind AndroidX CameraX PreviewView and ML Kit BarcodeScanner here
                 // For MVP structure compilation, we mock the UI scan trigger
                 Text("CAMERA PREVIEW TARGET", color = Color.White)
-                
-                Button(onClick = { 
-                    // Simulate a scan payload
-                    val mockQrPayload = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.mockTokenPayload" 
-                    
-                    isLoading = true
-                    scanStatus = "Validating Geo-Location..."
-                    statusColor = Color.Yellow
-                    
-                    try {
-                        fusedLocationClient.lastLocation.addOnSuccessListener { location: Location? ->
-                            if (location == null) {
-                                scanStatus = "Failed to acquire GPS lock."
-                                statusColor = Color.Red
-                                isLoading = false
-                                return@addOnSuccessListener
-                            }
-                            
-                            // Security Enforcement Step 1: Mock GPS Check
-                            if (SecurityHelper.isMockLocation(location)) {
-                                scanStatus = "MOCK LOCATION DETECTED. SCAN REJECTED."
-                                statusColor = Color.Red
-                                isLoading = false
-                                return@addOnSuccessListener
-                            }
-                            
-                            // Security Enforcement Step 2: Accuracy Check (<10m required)
-                            if (location.accuracy > 10.0) {
-                                scanStatus = "GPS signal too weak (${location.accuracy}m). Need <10m."
-                                statusColor = Color.Red
-                                isLoading = false
-                                return@addOnSuccessListener
-                            }
 
-                            coroutineScope.launch {
-                                scanStatus = "Verifying with server..."
-                                try {
-                                    val req = ScanRequest(
-                                        qrToken = mockQrPayload,
-                                        lat = location.latitude,
-                                        long = location.longitude,
-                                        timestamp = Instant.now().toString()
-                                    )
-                                    val res = ApiClient.instance.validateScan("Bearer $token", req)
-                                    if (res.success) {
-                                        scanStatus = "VALID. Stop Logged Successfully!"
-                                        statusColor = Color.Green
-                                    } else {
-                                        scanStatus = "REJECTED: ${res.rejection_reason}"
-                                        statusColor = Color.Red
-                                    }
-                                } catch (e: Exception) {
-                                    scanStatus = "Network failure during validation."
+                Button(
+                    onClick = {
+                        // Simulate a scan payload
+                        val mockQrPayload = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.mockTokenPayload"
+
+                        isLoading = true
+                        scanStatus = "Validating Geo-Location..."
+                        statusColor = Color.Yellow
+
+                        try {
+                            fusedLocationClient.lastLocation.addOnSuccessListener { location: Location? ->
+                                if (location == null) {
+                                    scanStatus = "Failed to acquire GPS lock."
                                     statusColor = Color.Red
-                                } finally {
                                     isLoading = false
+                                    return@addOnSuccessListener
+                                }
+
+                                // Security Enforcement Step 1: Mock GPS Check
+                                if (SecurityHelper.isMockLocation(location)) {
+                                    scanStatus = "MOCK LOCATION DETECTED. SCAN REJECTED."
+                                    statusColor = Color.Red
+                                    isLoading = false
+                                    return@addOnSuccessListener
+                                }
+
+                                // Security Enforcement Step 2: Accuracy Check (<10m required)
+                                if (location.accuracy > 10.0) {
+                                    scanStatus = "GPS signal too weak (${location.accuracy}m). Need <10m."
+                                    statusColor = Color.Red
+                                    isLoading = false
+                                    return@addOnSuccessListener
+                                }
+
+                                coroutineScope.launch {
+                                    scanStatus = "Verifying with server..."
+                                    try {
+                                        val req = ScanRequest(
+                                            qrToken = mockQrPayload,
+                                            lat = location.latitude,
+                                            long = location.longitude,
+                                            timestamp = Instant.now().toString()
+                                        )
+                                        val res = ApiClient.instance.validateScan("Bearer $token", req)
+                                        if (res.success) {
+                                            scanStatus = "VALID. Stop Logged Successfully!"
+                                            statusColor = Color.Green
+                                        } else {
+                                            scanStatus = "REJECTED: ${res.rejection_reason}"
+                                            statusColor = Color.Red
+                                        }
+                                    } catch (e: Exception) {
+                                        scanStatus = "Network failure during validation."
+                                        statusColor = Color.Red
+                                    } finally {
+                                        isLoading = false
+                                    }
                                 }
                             }
+                        } catch (e: SecurityException) {
+                            scanStatus = "Location Permission Revoked."
+                            statusColor = Color.Red
+                            isLoading = false
                         }
-                    } catch (e: SecurityException) {
-                        scanStatus = "Location Permission Revoked."
-                        statusColor = Color.Red
-                        isLoading = false
-                    }
-
-                }, modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 32.dp)) {
+                    },
+                    // Bug #5 fix: Button is now a direct child of the outer Box,
+                    // so Modifier.align(Alignment.BottomCenter) is valid within BoxScope.
+                    modifier = Modifier
+                        .align(Alignment.BottomCenter)
+                        .padding(bottom = 32.dp)
+                ) {
                     Text("SIMULATE QR SCAN")
                 }
 

@@ -19,12 +19,13 @@ object SecurityHelper {
     }
 
     // 3. Fallback System Settings Mock Location Check
+    // NOTE: Settings.Secure.ALLOW_MOCK_LOCATION is deprecated since API 23 and always returns
+    // null/false on modern Android devices regardless of mock GPS apps being active.
+    // Real mock detection is handled by location.isMock (API 31+) in isMockLocation().
+    @Suppress("DEPRECATION")
     fun isMockSettingsEnabled(context: Context): Boolean {
-        return try {
-            Settings.Secure.getString(context.contentResolver, Settings.Secure.ALLOW_MOCK_LOCATION) == "1"
-        } catch (e: Exception) {
-            false
-        }
+        // Deprecated: always returns false on API 23+; kept for legacy compatibility only.
+        return false
     }
 
     // 4. Get Unique Device ID securely (For Device Binding)
