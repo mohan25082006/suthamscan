@@ -37,7 +37,8 @@ export default function LiveMonitoring() {
     useEffect(() => {
         const fetchScans = async () => {
             try {
-                const res = await axios.get('http://localhost:5000/api/admin/scans');
+                const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+                const res = await axios.get(`${API_URL}/api/admin/scans`);
                 if (res.data.success) {
                     const sortedScans = res.data.data.sort((a: any, b: any) =>
                         new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
